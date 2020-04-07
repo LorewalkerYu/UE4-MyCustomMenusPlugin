@@ -2,6 +2,7 @@
 
 #include "SettingObject/SettingObject.h"
 #include "GameFramework/GameUserSettings.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 bool USettingObject::StartUp()
 {
@@ -29,12 +30,12 @@ int32 USettingObject::GetFullScreenMode() const
 	return UGameUserSettings::GetGameUserSettings()->GetFullscreenMode();
 }
 
-void USettingObject::SetFullScreenMode(int32 FullScreenMode)
+void USettingObject::SetFullscreenMode(int32 FullScreenMode)
 {
 	UGameUserSettings::GetGameUserSettings()->SetFullscreenMode(EWindowMode::ConvertIntToWindowMode(FullScreenMode));
 }
 
-bool USettingObject::GetVSyncEnabled() const
+bool USettingObject::IsVSyncEnabled() const
 {
 	return UGameUserSettings::GetGameUserSettings()->IsVSyncEnabled();
 }
@@ -77,6 +78,11 @@ void USettingObject::SetFoliageQuality(int32 Quality)
 void USettingObject::ApplySettings(bool bCheckForCommandLineOverrides)
 {
 	UGameUserSettings::GetGameUserSettings()->ApplySettings(bCheckForCommandLineOverrides);
+}
+
+bool USettingObject::GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions)
+{
+	return UKismetSystemLibrary::GetSupportedFullscreenResolutions(Resolutions);
 }
 
 int32 USettingObject::GetViewDistanceQuality() const

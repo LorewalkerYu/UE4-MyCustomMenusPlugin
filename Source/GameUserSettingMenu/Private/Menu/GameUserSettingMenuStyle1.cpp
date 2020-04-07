@@ -6,19 +6,24 @@
 #include "Menu/GameUserSettingMenuStyle1.h"
 #include "Components/ComboBoxString.h"
 #include "Components/CheckBox.h"
-#include "GameFramework/GameUserSettings.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "SettingObject/SettingObject.h"
 
 
 void UGameUserSettingMenuStyle1::NativeConstruct()
 {
-	UGameUserSettings::GetGameUserSettings()->LoadSettings(true);
-	UGameUserSettings::GetGameUserSettings()->ValidateSettings();
+	
+	this->SettingObj = NewObject<USettingObject>(this, "SettingObj");
+	if (this->SettingObj)
+	{
+		this->SettingObj->StartUp();
+	}
 
 	InitializeResolutionComboBox();
 	InitializeWindowModeComboBox();
 	InitializeFrameRateLimitComboBox();
 
+	
 	UUserWidget::NativeConstruct();
 }
 
@@ -29,21 +34,20 @@ void UGameUserSettingMenuStyle1::NativeDestruct()
 
 void UGameUserSettingMenuStyle1::InitializeResolutionComboBox()
 {
-	if (!this->GetResolutionComboBox())
+	if (!this->GetResolutionComboBox() || !this->SettingObj)
 	{
 		return;
 	}
 
 	this->GetResolutionComboBox()->ClearOptions();
 
-	// Get GameUserSetting
-	UGameUserSettings* GameUserSetting = UGameUserSettings::GetGameUserSettings();
 
 	// Get supported resolutions
 	TArray<FIntPoint> SupportedResolutions;
-	UKismetSystemLibrary::GetSupportedFullscreenResolutions(SupportedResolutions);
+	this->SettingObj->GetSupportedFullscreenResolutions(SupportedResolutions);
 
 	// Add Supported resolution to combobox options
+	// i.e "1920x1080"
 	for (const FIntPoint& Resolution : SupportedResolutions)
 	{
 		FString OptionStr = FString::FromInt(Resolution.X) + "x" + FString::FromInt(Resolution.Y);
@@ -51,7 +55,7 @@ void UGameUserSettingMenuStyle1::InitializeResolutionComboBox()
 	}
 
 	// set current resolution to combobox's selected option
-	FIntPoint CurrentGameResolution = GameUserSetting->GetScreenResolution();
+	FIntPoint CurrentGameResolution = this->SettingObj->GetScreenResolution();
 	FString SelectedOptionStr = FString::FromInt(CurrentGameResolution.X) + "x" + FString::FromInt(CurrentGameResolution.Y);
 	this->GetResolutionComboBox()->SetSelectedOption(SelectedOptionStr);
 
@@ -61,7 +65,7 @@ void UGameUserSettingMenuStyle1::InitializeResolutionComboBox()
 
 void UGameUserSettingMenuStyle1::OnResolutionComboBoxChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
-	if (SelectionType == ESelectInfo::Type::Direct)
+	if (SelectionType == ESelectInfo::Type::Direct || !this->SettingObj)
 	{
 		return;
 	}
@@ -72,29 +76,26 @@ void UGameUserSettingMenuStyle1::OnResolutionComboBoxChanged(FString SelectedIte
 	{
 		return;
 	}
-
-	UGameUserSettings::GetGameUserSettings()->SetScreenResolution(FIntPoint(FCString::Atoi(*LeftStr), FCString::Atoi(*RightStr)));
+	this->SettingObj->SetScreenResolution(FCString::Atoi(*LeftStr), FCString::Atoi(*RightStr));
+	
 }
 
 void UGameUserSettingMenuStyle1::InitializeWindowModeComboBox()
 {
-	if (!this->GetWindowModeComboBox())
+	if (!this->GetWindowModeComboBox() || !this->SettingObj)
 	{
 		return;
 	}
 
+	
 	this->GetWindowModeComboBox()->ClearOptions();
-
-	// Get GameUserSetting
-	UGameUserSettings* GameUserSetting = UGameUserSettings::GetGameUserSettings();
-
 
 	this->GetWindowModeComboBox()->AddOption(WindowModeDisplayText[(int32)EWindowMode::Type::Fullscreen]);
 	this->GetWindowModeComboBox()->AddOption(WindowModeDisplayText[(int32)EWindowMode::Type::WindowedFullscreen]);
 	this->GetWindowModeComboBox()->AddOption(WindowModeDisplayText[(int32)EWindowMode::Type::Windowed]);
 
-
-	this->GetWindowModeComboBox()->SetSelectedOption(WindowModeDisplayText[GameUserSetting->GetFullscreenMode()]);
+	// set selected option
+	this->GetWindowModeComboBox()->SetSelectedOption(WindowModeDisplayText[this->SettingObj->GetFullScreenMode()]);
 
 	// bind callback event
 	this->GetWindowModeComboBox()->OnSelectionChanged.AddDynamic(this, &UGameUserSettingMenuStyle1::OnWindowModeComboBoxChanged);
@@ -102,25 +103,22 @@ void UGameUserSettingMenuStyle1::InitializeWindowModeComboBox()
 
 void UGameUserSettingMenuStyle1::OnWindowModeComboBoxChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
-	if (SelectionType == ESelectInfo::Type::Direct)
+	if (SelectionType == ESelectInfo::Type::Direct || !this->SettingObj)
 	{
 		return;
 	}
 
-	UGameUserSettings::GetGameUserSettings()->SetFullscreenMode(EWindowMode::ConvertIntToWindowMode(*WindowModeDisplayText.FindKey(SelectedItem)));
+	this->SettingObj->SetFullscreenMode(*WindowModeDisplayText.FindKey(SelectedItem));
 }
 
 void UGameUserSettingMenuStyle1::InitializeFrameRateLimitComboBox()
 {
-	if (!this->GetFrameRateLimitComboBox())
+	if (!this->GetFrameRateLimitComboBox() || !this->SettingObj)
 	{
 		return;
 	}
 
 	this->GetFrameRateLimitComboBox()->ClearOptions();
-
-	// Get GameUserSetting
-	UGameUserSettings* GameUserSetting = UGameUserSettings::GetGameUserSettings();
 
 	TArray<int32> Keys;
 	FrameRateLimitDisplayText.GetKeys(Keys);
@@ -130,7 +128,7 @@ void UGameUserSettingMenuStyle1::InitializeFrameRateLimitComboBox()
 		this->GetFrameRateLimitComboBox()->AddOption(FrameRateLimitDisplayText[Key]);
 	}
 
-	this->GetFrameRateLimitComboBox()->SetSelectedOption(FrameRateLimitDisplayText[FMath::RoundToInt(GameUserSetting->GetFrameRateLimit())]);
+	this->GetFrameRateLimitComboBox()->SetSelectedOption(FrameRateLimitDisplayText[FMath::RoundToInt(this->SettingObj->GetFrameRateLimit())]);
 
 	// bind callback event
 	this->GetFrameRateLimitComboBox()->OnSelectionChanged.AddDynamic(this, &UGameUserSettingMenuStyle1::OnFrameRateLimitComboBoxChanged);
@@ -138,32 +136,40 @@ void UGameUserSettingMenuStyle1::InitializeFrameRateLimitComboBox()
 
 void UGameUserSettingMenuStyle1::OnFrameRateLimitComboBoxChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
-	if (SelectionType == ESelectInfo::Type::Direct)
+	if (SelectionType == ESelectInfo::Type::Direct || !this->SettingObj)
 	{
 		return;
 	}
-	UGameUserSettings::GetGameUserSettings()->SetFrameRateLimit(*FrameRateLimitDisplayText.FindKey(SelectedItem) * 1.f);
+	this->SettingObj->SetFrameRateLimit(*FrameRateLimitDisplayText.FindKey(SelectedItem) * 1.f);
 }
 
 void UGameUserSettingMenuStyle1::InitializeVSyncCheckBox()
 {
-	if (!this->GetVSyncBox())
+	if (!this->GetVSyncBox() || !this->SettingObj)
 	{
 		return;
 	}
 
-	this->GetVSyncBox()->SetIsChecked(UGameUserSettings::GetGameUserSettings()->IsVSyncEnabled());
+	this->GetVSyncBox()->SetIsChecked(this->SettingObj->IsVSyncEnabled());
 	this->GetVSyncBox()->OnCheckStateChanged.AddDynamic(this, &UGameUserSettingMenuStyle1::OnVSyncCheckBoxStateChanged);
 }
 
 void UGameUserSettingMenuStyle1::OnVSyncCheckBoxStateChanged(bool bIsChecked)
 {
-	UGameUserSettings::GetGameUserSettings()->SetVSyncEnabled(bIsChecked);
+	if (!this->SettingObj)
+	{
+		return;
+	}
+	this->SettingObj->SetVSyncEnabled(bIsChecked);
 }
 
 void UGameUserSettingMenuStyle1::ApplySettings(bool bCheckForCommandLineOverrides)
 {
-	UGameUserSettings::GetGameUserSettings()->ApplySettings(bCheckForCommandLineOverrides);
+	if (!this->SettingObj)
+	{
+		return;
+	}
+	this->SettingObj->ApplySettings(bCheckForCommandLineOverrides);
 }
 
 

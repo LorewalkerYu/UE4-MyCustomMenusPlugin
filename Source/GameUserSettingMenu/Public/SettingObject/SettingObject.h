@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(NotBlueprintType, NotBlueprintable)
 class GAMEUSERSETTINGMENU_API USettingObject : public UObject
 {
 
@@ -21,13 +21,15 @@ public:
     bool      StartUp();
 	void      ApplySettings(bool bCheckForCommandLineOverrides);
 
+    bool      GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions);
+
     FIntPoint GetScreenResolution() const;
     void      SetScreenResolution(int32 Width, int32 Hight);
 
     int32     GetFullScreenMode() const;
-    void      SetFullScreenMode(int32 FullScreenMode);
+    void      SetFullscreenMode(int32 FullScreenMode);
 
-    bool      GetVSyncEnabled() const;
+    bool      IsVSyncEnabled() const;
     void      SetVSyncEnabled(bool bEnabled);
 
     float     GetFrameRateLimit() const;

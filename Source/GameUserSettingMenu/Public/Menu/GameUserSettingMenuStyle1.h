@@ -114,5 +114,5 @@ public:
 
 protected:
 
-	USettingObject
+	class USettingObject* SettingObj = nullptr;
 };
